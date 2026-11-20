@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Diabetes Risk Predictor</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 30px 15px;
+    }
+
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      border: 1px solid var(--border);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 15px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .presets {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 8px 12px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 5px;
+    }
+
+    input {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn-primary {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    /* Results section */
+    .result-card {
+      display: none;
+      margin-top: 25px;
+      padding: 20px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-diabetic { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
+    .badge-normal { background: #dcfce7; color: var(--success); border: 1px solid #86efac; }
+
+    .progress-bar-bg {
+      background: #e2e8f0;
+      border-radius: 6px;
+      height: 14px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      transition: width 0.5s ease-in-out;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-top: 8px;
+      color: var(--muted);
+    }
+
+    .error-card {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      color: var(--danger);
+      font-size: 14px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 25px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Clinical Diabetes Predictor</h1>
+      <p>Lab 06: Model Deployment with FastAPI & Interactive Web Client</p>
+    </div>
+
+    <!-- Quick Load Presets -->
+    <div class="presets">
+      <button class="btn-secondary" type="button" onclick="loadPreset('healthy')">Sample: Low Risk</button>
+      <button class="btn-secondary" type="button" onclick="loadPreset('diabetic')">Sample: High Risk</button>
+      <button class="btn-secondary" type="button" onclick="resetForm()">Clear Form</button>
+    </div>
+
+    <form id="predictionForm" onsubmit="event.preventDefault(); predict();">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="Glucose">Glucose (mg/dL)</label>
+          <input id="Glucose" type="number" step="any" min="0" max="400" placeholder="e.g. 120" required>
+        </div>
+
+        <div class="form-group">
+          <label for="BloodPressure">Blood Pressure (mm Hg)</label>
+          <input id="BloodPressure" type="number" step="any" min="0" max="250" placeholder="e.g. 70" required>
+        </div>
+
+        <div class="form-group">
+          <label for="Insulin">2-Hour Serum Insulin (mu U/ml)</label>
+          <input id="Insulin" type="number" step="any" min="0" max="900" placeholder="e.g. 80" required>
+        </div>
+
+        <div class="form-group">
+          <label for="BMI">Body Mass Index (BMI)</label>
+          <input id="BMI" type="number" step="any" min="0" max="80" placeholder="e.g. 26.5" required>
+        </div>
+
+        <div class="form-group">
+          <label for="DiabetesPedigreeFunction">Diabetes Pedigree Score</label>
+          <input id="DiabetesPedigreeFunction" type="number" step="any" min="0" max="3" placeholder="e.g. 0.35" required>
+        </div>
+
+        <div class="form-group">
+          <label for="Age">Age (Years)</label>
+          <input id="Age" type="number" step="1" min="1" max="120" placeholder="e.g. 33" required>
+        </div>
+      </div>
+
+      <button id="submitBtn" class="btn-primary" type="submit">Predict Diabetes Risk</button>
+    </form>
+
+    <!-- Results Section -->
+    <div id="resultCard" class="result-card">
+      <div class="result-header">
+        <span style="font-size: 16px; font-weight: 600;">Prediction Result:</span>
+        <span id="resultBadge" class="badge">--</span>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600;">
+          <span>Diabetic Risk Probability</span>
+          <span id="probValue">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="probBar" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <span>Risk Category: <strong id="riskTier">--</strong></span>
+        <span>Timestamp: <span id="timeField">--</span></span>
+      </div>
+    </div>
+
+    <!-- Error Section -->
+    <div id="errorCard" class="error-card"></div>
+
+    <div class="footer">
+      Powered by FastAPI Microservice & Scikit-Learn Logistic Regression
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8000/predict";
+    const fields = ["Glucose", "BloodPressure", "Insulin", "BMI", "DiabetesPedigreeFunction", "Age"];
+
+    const PRESETS = {
+      healthy: {
+        Glucose: 85,
+        BloodPressure: 66,
+        Insulin: 45,
+        BMI: 22.4,
+        DiabetesPedigreeFunction: 0.18,
+        Age: 25
+      },
+      diabetic: {
+        Glucose: 175,
+        BloodPressure: 88,
+        Insulin: 180,
+        BMI: 38.5,
+        DiabetesPedigreeFunction: 0.85,
+        Age: 52
+      }
+    };
+
+    function loadPreset(type) {
+      const data = PRESETS[type];
+      for (const f of fields) {
+        document.getElementById(f).value = data[f];
+      }
+      hideMessages();
+    }
+
+    function resetForm() {
+      for (const f of fields) {
+        document.getElementById(f).value = "";
+      }
+      hideMessages();
+    }
+
+    function hideMessages() {
+      document.getElementById("resultCard").style.display = "none";
+      document.getElementById("errorCard").style.display = "none";
+    }
+
+    async function predict() {
+      hideMessages();
+      const payload = {};
+      for (const f of fields) {
+        const val = document.getElementById(f).value;
+        if (val === "") {
+          showError("Please complete all patient biomarker fields.");
+          return;
+        }
+        payload[f] = parseFloat(val);
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.innerText = "Analyzing Biometrics...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || `Server returned HTTP ${response.status}`);
+        }
+
+        const res = await response.json();
+        renderResult(res);
+      } catch (err) {
+        showError(`Inference connection failed: ${err.message}. Ensure the FastAPI server is running with: python -m uvicorn main:app --port 8000`);
+      } finally {
+        btn.innerText = "Predict Diabetes Risk";
+        btn.disabled = false;
+      }
+    }
+
+    function renderResult(data) {
+      const card = document.getElementById("resultCard");
+      const badge = document.getElementById("resultBadge");
+      const probValue = document.getElementById("probValue");
+      const probBar = document.getElementById("probBar");
+      const riskTier = document.getElementById("riskTier");
+      const timeField = document.getElementById("timeField");
+
+      const pct = (data.probability * 100).toFixed(1);
+      probValue.innerText = `${pct}%`;
+      probBar.style.width = `${pct}%`;
+      riskTier.innerText = data.risk_level;
+      timeField.innerText = new Date(data.timestamp).toLocaleTimeString();
+
+      if (data.predicted_label === 1) {
+        badge.innerText = "Diabetic (Positive)";
+        badge.className = "badge badge-diabetic";
+        probBar.style.backgroundColor = "var(--danger)";
+      } else {
+        badge.innerText = "Non-Diabetic (Negative)";
+        badge.className = "badge badge-normal";
+        probBar.style.backgroundColor = "var(--success)";
+      }
+
+      card.style.display = "block";
+    }
+
+    function showError(msg) {
+      const errCard = document.getElementById("errorCard");
+      errCard.innerText = msg;
+      errCard.style.display = "block";
+    }
+  </script>
+</body>
+</html>
